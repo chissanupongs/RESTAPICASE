@@ -1,0 +1,135 @@
+openapi: 3.0.4
+info:
+  title: Case Management API
+  description: API สำหรับอัปเดตสถานะ (case_status) และผลลัพธ์ (case_result) ของเคส
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /updatecasestatus:
+    post:
+      summary: เพิ่มหรืออัปเดต case_status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseStatusInput'
+      responses:
+        '201':
+          description: สร้างเคสใหม่
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '200':
+          description: อัปเดตสถานะของเคสที่มีอยู่แล้ว
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '400':
+          description: ข้อมูลไม่ถูกต้อง
+
+  /updatecaseresult:
+    post:
+      summary: เพิ่มหรืออัปเดต case_result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseResultInput'
+      responses:
+        '201':
+          description: สร้างเคสใหม่
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '200':
+          description: อัปเดตผลของเคสที่มีอยู่แล้ว
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '400':
+          description: ข้อมูลไม่ถูกต้อง
+
+  /cases:
+    get:
+      summary: ดูรายการเคสทั้งหมด
+      responses:
+        '200':
+          description: รายการเคสทั้งหมดในระบบ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Case'
+
+components:
+  schemas:
+    Case:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "testtoken"
+        case_id:
+          type: array
+          items:
+            type: string
+          example: ["caseA", "caseB"]
+        case_status:
+          type: string
+          enum: [Opened, Closed]
+          nullable: true
+        case_result:
+          type: string
+          enum: [WaitingAnalysis, TruePosotives, FalsePosotives]
+          nullable: true
+
+    CaseStatusInput:
+      type: object
+      required:
+        - token
+        - case_id
+        - case_status
+      properties:
+        token:
+          type: string
+          example: "testtoken"
+        case_id:
+          type: array
+          items:
+            type: string
+          example: ["case123", "case456"]
+        case_status:
+          type: string
+          enum: [Opened, Closed]
+          example: "Opened"
+
+    CaseResultInput:
+      type: object
+      required:
+        - token
+        - case_id
+        - case_result
+      properties:
+        token:
+          type: string
+          example: "testtoken"
+        case_id:
+          type: array
+          items:
+            type: string
+          example: ["case123", "case456"]
+        case_result:
+          type: string
+          enum: [WaitingAnalysis, TruePosotives, FalsePosotives]
+          example: "TruePosotives"
