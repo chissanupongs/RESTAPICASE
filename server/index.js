@@ -20,6 +20,11 @@ const typeDefs = `#graphql
   type Query{
     caselist: [Case]
   }
+
+  type Mutation {
+    updateCaseStatus(token: String!, case_id: [String!]!, case_status: String!): [Case]
+    updateCaseResult(token: String!, case_id: [String!]!, case_result: String!): [Case]
+  }
 `
 
 const file = fs.readFileSync('./swagger.yaml', 'utf8');
@@ -113,9 +118,56 @@ app.post('/updatecaseresult', (req, res) => {
 
 const resolvers = {
   Query: {
-    caselist: () => caselist
+    caselist: () => caselist,
+  },
+  Mutation: {
+    updateCaseStatus: (_, { token, case_id, case_status }) => {
+      if (!VALID_STATUSES.includes(case_status)) {
+        throw new Error(`Invalid 'case_status'. Allowed values: ${VALID_STATUSES.join(", ")}`);
+      }
+
+      let updatedCases = [];
+
+      case_id.forEach(singleCaseId => {
+        const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
+
+        if (index !== -1) {
+          caselist[index].case_status = case_status;
+          updatedCases.push(caselist[index]);
+        } else {
+          const newCase = { token, case_id: [singleCaseId], case_status };
+          caselist.push(newCase);
+          updatedCases.push(newCase);
+        }
+      });
+
+      return updatedCases;
+    },
+    updateCaseResult: (_, { token, case_id, case_result }) => {
+      if (!VALID_RESULTS.includes(case_result)) {
+        throw new Error(`Invalid 'case_result'. Allowed values: ${VALID_RESULTS.join(", ")}`);
+      }
+
+      let updatedCases = [];
+
+      case_id.forEach(singleCaseId => {
+        const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
+
+        if (index !== -1) {
+          caselist[index].case_result = case_result;
+          updatedCases.push(caselist[index]);
+        } else {
+          const newCase = { token, case_id: [singleCaseId], case_result };
+          caselist.push(newCase);
+          updatedCases.push(newCase);
+        }
+      });
+
+      return updatedCases;
+    }
   }
 }
+
 
 const server = new ApolloServer({
   typeDefs,
