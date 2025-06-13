@@ -91,7 +91,7 @@ components:
           nullable: true
         case_result:
           type: string
-          enum: [WaitingAnalysis, TruePosotives, FalsePosotives]
+          enum: [WaitingAnalysis, TruePositives, FalsePositives]
           nullable: true
 
     CaseStatusInput:
@@ -131,5 +131,5 @@ components:
           example: ["case123", "case456"]
         case_result:
           type: string
-          enum: [WaitingAnalysis, TruePosotives, FalsePosotives]
-          example: "TruePosotives"
+          enum: [WaitingAnalysis, TruePositives, FalsePositives]
+          example: "TruePositives"

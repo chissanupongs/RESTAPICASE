@@ -1,9 +1,9 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import swaggerUi from 'swagger-ui-express';
-import fs from 'fs';
-import YAML from 'yaml';
-import cors from 'cors';
+// import express from 'express';
+// import bodyParser from 'body-parser';
+// import swaggerUi from 'swagger-ui-express';
+// import fs from 'fs';
+// import YAML from 'yaml';
+// import cors from 'cors';
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 
@@ -24,102 +24,105 @@ const typeDefs = `#graphql
   type Mutation {
     updateCaseStatus(token: String!, case_id: [String!]!, case_status: String!): [Case]
     updateCaseResult(token: String!, case_id: [String!]!, case_result: String!): [Case]
+    addCase(token: String!, case_id: [String!]!): [Case]
+    deleteCase(token: String!, case_id: [String!]!): [Case]
   }
 `
 
-const file = fs.readFileSync('./swagger.yaml', 'utf8');
-const swaggerDocument = YAML.parse(file);
+// const file = fs.readFileSync('./swagger.yaml', 'utf8');
+// const swaggerDocument = YAML.parse(file);
 
-const app = express();
-const port = 8000;
+// const app = express();
+// const port = 8000;
 
-app.use(bodyParser.json());
-app.use(cors());
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// app.use(bodyParser.json());
+// app.use(cors());
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // ENUM definitions
 const VALID_STATUSES = ["Opened", "Closed"];
-const VALID_RESULTS = ["WaitingAnalysis", "TruePosotives", "FalsePosotives"];
+const VALID_RESULTS = ["WaitingAnalysis", "TruePositives", "FalsePositives"];
 
 // Initial data
 let caselist = [];
 
 // Helper function to find index of a case by token + case_id
-function findCaseIndex(token, case_id_array) {
-  return caselist.findIndex(
-    item => item.token === token &&
-            JSON.stringify(item.case_id.sort()) === JSON.stringify(case_id_array.sort())
-  );
-}
+// function findCaseIndex(token, case_id_array) {
+//   return caselist.findIndex(
+//     item => item.token === token &&
+//             JSON.stringify(item.case_id.sort()) === JSON.stringify(case_id_array.sort())
+//   );
+// }
 
-// POST /updatecasestatus
-app.post('/updatecasestatus', (req, res) => {
-  const { token, case_id, case_status } = req.body;
+// // POST /updatecasestatus
+// app.post('/updatecasestatus', (req, res) => {
+//   const { token, case_id, case_status } = req.body;
 
-  if (!token || !Array.isArray(case_id) || !case_id.every(id => typeof id === "string")) {
-    return res.status(400).send("Invalid input: 'token' must be string and 'case_id' must be array of strings.");
-  }
+//   if (!token || !Array.isArray(case_id) || !case_id.every(id => typeof id === "string")) {
+//     return res.status(400).send("Invalid input: 'token' must be string and 'case_id' must be array of strings.");
+//   }
 
-  if (!VALID_STATUSES.includes(case_status)) {
-    return res.status(400).send(`Invalid 'case_status'. Allowed values: ${VALID_STATUSES.join(", ")}`);
-  }
+//   if (!VALID_STATUSES.includes(case_status)) {
+//     return res.status(400).send(`Invalid 'case_status'. Allowed values: ${VALID_STATUSES.join(", ")}`);
+//   }
 
-  let updatedCases = [];
+//   let updatedCases = [];
 
-  case_id.forEach(singleCaseId => {
-    // หา index ของเคสที่มี token และ case_id ตรงกับ singleCaseId
-    const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
+//   case_id.forEach(singleCaseId => {
+//     // หา index ของเคสที่มี token และ case_id ตรงกับ singleCaseId
+//     const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
     
-    if (index !== -1) {
-      // อัปเดต case_status ของเคสที่เจอ
-      caselist[index].case_status = case_status;
-      updatedCases.push(caselist[index]);
-    } else {
-      // สร้างเคสใหม่สำหรับ case_id นี้
-      const newCase = { token, case_id: [singleCaseId], case_status };
-      caselist.push(newCase);
-      updatedCases.push(newCase);
-    }
-  });
+//     if (index !== -1) {
+//       // อัปเดต case_status ของเคสที่เจอ
+//       caselist[index].case_status = case_status;
+//       updatedCases.push(caselist[index]);
+//     } else {
+//       // สร้างเคสใหม่สำหรับ case_id นี้
+//       const newCase = { token, case_id: [singleCaseId], case_status };
+//       caselist.push(newCase);
+//       updatedCases.push(newCase);
+//     }
+//   });
 
-  res.status(200).json(updatedCases);
-});
+//   res.status(200).json(updatedCases);
+// });
 
 
-// POST /updatecaseresult
-app.post('/updatecaseresult', (req, res) => {
-  const { token, case_id, case_result } = req.body;
+// // POST /updatecaseresult
+// app.post('/updatecaseresult', (req, res) => {
+//   const { token, case_id, case_result } = req.body;
 
-  if (!token || !Array.isArray(case_id) || !case_id.every(id => typeof id === "string")) {
-    return res.status(400).send("Invalid input: 'token' must be string and 'case_id' must be array of strings.");
-  }
+//   if (!token || !Array.isArray(case_id) || !case_id.every(id => typeof id === "string")) {
+//     return res.status(400).send("Invalid input: 'token' must be string and 'case_id' must be array of strings.");
+//   }
 
-  if (!VALID_RESULTS.includes(case_result)) {
-    return res.status(400).send(`Invalid 'case_result'. Allowed values: ${VALID_RESULTS.join(", ")}`);
-  }
+//   if (!VALID_RESULTS.includes(case_result)) {
+//     return res.status(400).send(`Invalid 'case_result'. Allowed values: ${VALID_RESULTS.join(", ")}`);
+//   }
 
-  let updatedCases = [];
+//   let updatedCases = [];
 
-  case_id.forEach(singleCaseId => {
-    const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
+//   case_id.forEach(singleCaseId => {
+//     const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
 
-    if (index !== -1) {
-      caselist[index].case_result = case_result;
-      updatedCases.push(caselist[index]);
-    } else {
-      const newCase = { token, case_id: [singleCaseId], case_result };
-      caselist.push(newCase);
-      updatedCases.push(newCase);
-    }
-  });
+//     if (index !== -1) {
+//       caselist[index].case_result = case_result;
+//       updatedCases.push(caselist[index]);
+//     } else {
+//       const newCase = { token, case_id: [singleCaseId], case_result };
+//       caselist.push(newCase);
+//       updatedCases.push(newCase);
+//     }
+//   });
 
-  res.status(200).json(updatedCases);
-});
+//   res.status(200).json(updatedCases);
+// });
 
 const resolvers = {
   Query: {
     caselist: () => caselist,
   },
+
   Mutation: {
     updateCaseStatus: (_, { token, case_id, case_status }) => {
       if (!VALID_STATUSES.includes(case_status)) {
@@ -129,13 +132,23 @@ const resolvers = {
       let updatedCases = [];
 
       case_id.forEach(singleCaseId => {
-        const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
+        const index = caselist.findIndex(
+          item => item.token === token && item.case_id.includes(singleCaseId)
+        );
 
         if (index !== -1) {
           caselist[index].case_status = case_status;
+          if (!caselist[index].case_id.includes(singleCaseId)) {
+            caselist[index].case_id.push(singleCaseId);
+          }
           updatedCases.push(caselist[index]);
         } else {
-          const newCase = { token, case_id: [singleCaseId], case_status };
+          const newCase = {
+            token,
+            case_id: [singleCaseId],
+            case_status,
+            case_result: null,
+          };
           caselist.push(newCase);
           updatedCases.push(newCase);
         }
@@ -143,6 +156,7 @@ const resolvers = {
 
       return updatedCases;
     },
+
     updateCaseResult: (_, { token, case_id, case_result }) => {
       if (!VALID_RESULTS.includes(case_result)) {
         throw new Error(`Invalid 'case_result'. Allowed values: ${VALID_RESULTS.join(", ")}`);
@@ -151,33 +165,63 @@ const resolvers = {
       let updatedCases = [];
 
       case_id.forEach(singleCaseId => {
-        const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
+        const index = caselist.findIndex(
+          item => item.token === token && item.case_id.includes(singleCaseId)
+        );
 
         if (index !== -1) {
           caselist[index].case_result = case_result;
+          if (!caselist[index].case_id.includes(singleCaseId)) {
+            caselist[index].case_id.push(singleCaseId);
+          }
           updatedCases.push(caselist[index]);
         } else {
-          const newCase = { token, case_id: [singleCaseId], case_result };
+          const newCase = {
+            token,
+            case_id: [singleCaseId],
+            case_status: null,
+            case_result,
+          };
           caselist.push(newCase);
           updatedCases.push(newCase);
         }
       });
 
       return updatedCases;
-    }
-  }
-}
+    },
 
+    deleteCase: (_, { token, case_id }) => {
+      let deletedCases = [];
+
+      case_id.forEach(singleCaseId => {
+        const index = caselist.findIndex(
+          item => item.token === token && item.case_id.includes(singleCaseId)
+        );
+
+        if (index !== -1) {
+          const [deleted] = caselist.splice(index, 1);
+          deletedCases.push(deleted);
+        }
+      });
+
+      if (deletedCases.length === 0) {
+        throw new Error("No matching cases found to delete.");
+      }
+
+      return deletedCases;
+    },
+  },
+};
 
 const server = new ApolloServer({
   typeDefs,
   resolvers,
 });
 
-// GET all cases (for testing)
-app.get('/cases', (req, res) => {
-  res.json(caselist);
-});
+// // GET all cases (for testing)
+// app.get('/cases', (req, res) => {
+//   res.json(caselist);
+// });
 
 const { url } = await startStandaloneServer(server, {
   listen: { port: 4000 },
@@ -185,6 +229,6 @@ const { url } = await startStandaloneServer(server, {
 
 console.log(`🚀  Apollo Server ready at: ${url}`);
 
-app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`Server listening at http://localhost:${port}`);
+// });
