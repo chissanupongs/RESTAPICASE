@@ -1,9 +1,26 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const swaggerUi = require('swagger-ui-express');
-const fs = require("fs");
-const YAML = require('yaml');
-const cors = require('cors');
+import express from 'express';
+import bodyParser from 'body-parser';
+import swaggerUi from 'swagger-ui-express';
+import fs from 'fs';
+import YAML from 'yaml';
+import cors from 'cors';
+import { ApolloServer } from '@apollo/server';
+import { startStandaloneServer } from '@apollo/server/standalone';
+
+
+const typeDefs = `#graphql
+
+  type Case{
+    token: String
+    case_id: [String]
+    case_status: String
+    case_result: String
+  }
+
+  type Query{
+    caselist: [Case]
+  }
+`
 
 const file = fs.readFileSync('./swagger.yaml', 'utf8');
 const swaggerDocument = YAML.parse(file);
@@ -94,10 +111,27 @@ app.post('/updatecaseresult', (req, res) => {
   res.status(200).json(updatedCases);
 });
 
+const resolvers = {
+  Query: {
+    caselist: () => caselist
+  }
+}
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+});
+
 // GET all cases (for testing)
 app.get('/cases', (req, res) => {
   res.json(caselist);
 });
+
+const { url } = await startStandaloneServer(server, {
+  listen: { port: 4000 },
+});
+
+console.log(`🚀  Apollo Server ready at: ${url}`);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
