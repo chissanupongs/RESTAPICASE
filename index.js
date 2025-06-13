@@ -4,6 +4,20 @@ const swaggerUi = require('swagger-ui-express');
 const fs = require("fs");
 const YAML = require('yaml');
 const cors = require('cors');
+const { ApolloServer, gql } = require('apollo-server')
+
+const typeDefs = gql`
+  type Case{
+    token: String
+    case_id: [String]
+    case_status: String
+    case_result: String
+  }
+
+  type Query{
+    caselist: [Case]
+  }
+`
 
 const file = fs.readFileSync('./swagger.yaml', 'utf8');
 const swaggerDocument = YAML.parse(file);
@@ -94,6 +108,12 @@ app.post('/updatecaseresult', (req, res) => {
   res.status(200).json(updatedCases);
 });
 
+const resolvers = {
+  Query: {
+    caselist: () => caselist
+  }
+}
+
 // GET all cases (for testing)
 app.get('/cases', (req, res) => {
   res.json(caselist);
@@ -102,3 +122,9 @@ app.get('/cases', (req, res) => {
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
+
+const server = new ApolloServer({ typeDefs, resolvers });
+
+server.listen().then(({ url }) => {
+  console.log(`server ready at port ${url}`)
+})

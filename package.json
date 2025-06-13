@@ -10,9 +10,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "apollo-server": "^3.13.0",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "graphql": "^16.11.0",
     "swagger-ui-express": "^5.0.1",
     "yaml": "^2.8.0"
   },
