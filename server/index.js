@@ -15,8 +15,15 @@ const typeDefs = `#graphql
     timestamp: String
   }
 
+  type HistoryEntry {
+    timestamp: String
+    action: String
+    case: Case
+  }
+
   type Query {
     caselist: [Case]
+    history: [HistoryEntry]
   }
 
   type Mutation {
@@ -59,6 +66,19 @@ function appendHistory(action, cases) {
 const resolvers = {
   Query: {
     caselist: () => caselist,
+
+    history: () => {
+      try {
+        if (fs.existsSync(HISTORY_FILE_PATH)) {
+          const fileContent = fs.readFileSync(HISTORY_FILE_PATH, 'utf-8');
+          return fileContent ? JSON.parse(fileContent) : [];
+        }
+        return [];
+      } catch (err) {
+        console.error("Error reading history file:", err);
+        return [];
+      }
+    },
   },
 
   Mutation: {
