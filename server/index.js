@@ -1,22 +1,17 @@
-// import express from 'express';
-// import bodyParser from 'body-parser';
-// import swaggerUi from 'swagger-ui-express';
-// import fs from 'fs';
-// import YAML from 'yaml';
-// import cors from 'cors';
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 
 const typeDefs = `#graphql
 
-  type Case{
+  type Case {
     token: String
     case_id: [String]
     case_status: String
     case_result: String
+    timestamp: String
   }
 
-  type Query{
+  type Query {
     caselist: [Case]
   }
 
@@ -26,13 +21,11 @@ const typeDefs = `#graphql
     addCase(token: String!, case_id: [String!]!): [Case]
     deleteCase(token: String!, case_id: [String!]!): [Case]
   }
-`
+`;
 
-// ENUM definitions
 const VALID_STATUSES = ["Opened", "Closed"];
 const VALID_RESULTS = ["WaitingAnalysis", "TruePositives", "FalsePositives"];
 
-// Initial data
 let caselist = [];
 
 const resolvers = {
@@ -55,6 +48,7 @@ const resolvers = {
 
         if (index !== -1) {
           caselist[index].case_status = case_status;
+          caselist[index].timestamp = new Date().toISOString(); // เพิ่ม timestamp
           if (!caselist[index].case_id.includes(singleCaseId)) {
             caselist[index].case_id.push(singleCaseId);
           }
@@ -65,6 +59,7 @@ const resolvers = {
             case_id: [singleCaseId],
             case_status,
             case_result: null,
+            timestamp: new Date().toISOString(), // เพิ่ม timestamp
           };
           caselist.push(newCase);
           updatedCases.push(newCase);
@@ -88,6 +83,7 @@ const resolvers = {
 
         if (index !== -1) {
           caselist[index].case_result = case_result;
+          caselist[index].timestamp = new Date().toISOString(); // เพิ่ม timestamp
           if (!caselist[index].case_id.includes(singleCaseId)) {
             caselist[index].case_id.push(singleCaseId);
           }
@@ -98,6 +94,7 @@ const resolvers = {
             case_id: [singleCaseId],
             case_status: null,
             case_result,
+            timestamp: new Date().toISOString(), // เพิ่ม timestamp
           };
           caselist.push(newCase);
           updatedCases.push(newCase);
@@ -105,6 +102,29 @@ const resolvers = {
       });
 
       return updatedCases;
+    },
+
+    addCase: (_, { token, case_id }) => {
+      let addedCases = [];
+
+      case_id.forEach(singleCaseId => {
+        const exists = caselist.some(
+          item => item.token === token && item.case_id.includes(singleCaseId)
+        );
+        if (!exists) {
+          const newCase = {
+            token,
+            case_id: [singleCaseId],
+            case_status: null,
+            case_result: null,
+            timestamp: new Date().toISOString(), // เพิ่ม timestamp
+          };
+          caselist.push(newCase);
+          addedCases.push(newCase);
+        }
+      });
+
+      return addedCases;
     },
 
     deleteCase: (_, { token, case_id }) => {
@@ -139,95 +159,4 @@ const { url } = await startStandaloneServer(server, {
   listen: { port: 4000 },
 });
 
-console.log(`🚀  Apollo Server ready at: ${url}`);
-
-// const file = fs.readFileSync('./swagger.yaml', 'utf8');
-// const swaggerDocument = YAML.parse(file);
-
-// const app = express();
-// const port = 8000;
-
-// app.use(bodyParser.json());
-// app.use(cors());
-// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-// Helper function to find index of a case by token + case_id
-// function findCaseIndex(token, case_id_array) {
-//   return caselist.findIndex(
-//     item => item.token === token &&
-//             JSON.stringify(item.case_id.sort()) === JSON.stringify(case_id_array.sort())
-//   );
-// }
-
-// // POST /updatecasestatus
-// app.post('/updatecasestatus', (req, res) => {
-//   const { token, case_id, case_status } = req.body;
-
-//   if (!token || !Array.isArray(case_id) || !case_id.every(id => typeof id === "string")) {
-//     return res.status(400).send("Invalid input: 'token' must be string and 'case_id' must be array of strings.");
-//   }
-
-//   if (!VALID_STATUSES.includes(case_status)) {
-//     return res.status(400).send(`Invalid 'case_status'. Allowed values: ${VALID_STATUSES.join(", ")}`);
-//   }
-
-//   let updatedCases = [];
-
-//   case_id.forEach(singleCaseId => {
-//     // หา index ของเคสที่มี token และ case_id ตรงกับ singleCaseId
-//     const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
-    
-//     if (index !== -1) {
-//       // อัปเดต case_status ของเคสที่เจอ
-//       caselist[index].case_status = case_status;
-//       updatedCases.push(caselist[index]);
-//     } else {
-//       // สร้างเคสใหม่สำหรับ case_id นี้
-//       const newCase = { token, case_id: [singleCaseId], case_status };
-//       caselist.push(newCase);
-//       updatedCases.push(newCase);
-//     }
-//   });
-
-//   res.status(200).json(updatedCases);
-// });
-
-
-// // POST /updatecaseresult
-// app.post('/updatecaseresult', (req, res) => {
-//   const { token, case_id, case_result } = req.body;
-
-//   if (!token || !Array.isArray(case_id) || !case_id.every(id => typeof id === "string")) {
-//     return res.status(400).send("Invalid input: 'token' must be string and 'case_id' must be array of strings.");
-//   }
-
-//   if (!VALID_RESULTS.includes(case_result)) {
-//     return res.status(400).send(`Invalid 'case_result'. Allowed values: ${VALID_RESULTS.join(", ")}`);
-//   }
-
-//   let updatedCases = [];
-
-//   case_id.forEach(singleCaseId => {
-//     const index = caselist.findIndex(item => item.token === token && item.case_id.includes(singleCaseId));
-
-//     if (index !== -1) {
-//       caselist[index].case_result = case_result;
-//       updatedCases.push(caselist[index]);
-//     } else {
-//       const newCase = { token, case_id: [singleCaseId], case_result };
-//       caselist.push(newCase);
-//       updatedCases.push(newCase);
-//     }
-//   });
-
-//   res.status(200).json(updatedCases);
-// });
-
-// // GET all cases (for testing)
-// app.get('/cases', (req, res) => {
-//   res.json(caselist);
-// });
-
-// app.listen(port, () => {
-//   console.log(`Server listening at http://localhost:${port}`);
-// });
+console.log(`🚀  Server ready at: ${url}`);
