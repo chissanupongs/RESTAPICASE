@@ -283,7 +283,7 @@ const CaseList = () => {
               {displayedCases.length === 0 ? (
                 <tr>
                   <td colSpan="5" style={{ textAlign: "center", padding: 10 }}>
-                    ไม่มีข้อมูลที่ตรงกับเงื่อนไข
+                    No matching data found
                   </td>
                 </tr>
               ) : (
