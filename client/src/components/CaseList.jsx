@@ -1,17 +1,15 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import { GET_CASELIST } from "../graphql/queries";
 import { DELETE_CASE } from "../graphql/mutations";
 import { toast } from "react-toastify";
 import Pagination from "./Pagination";
 
-const FilterIcon = ({ active }) => (
-  <span style={{ cursor: "pointer", color: active ? "blue" : "gray" }}>
-    🔍
-  </span>
-);
-
 const ITEMS_PER_PAGE = 5;
+
+const FilterIcon = ({ active }) => (
+  <span style={{ cursor: "pointer", color: active ? "blue" : "gray" }}>🔍</span>
+);
 
 const CaseList = () => {
   const { data, loading, error } = useQuery(GET_CASELIST);
@@ -20,7 +18,11 @@ const CaseList = () => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [showCaseList, setShowCaseList] = useState(true);
+  const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
+
   const [filterOpen, setFilterOpen] = useState({
+    token: false,
     caseId: false,
     status: false,
     result: false,
@@ -28,60 +30,47 @@ const CaseList = () => {
   });
 
   const [filters, setFilters] = useState({
+    token: "",
     caseId: "",
     status: "",
     result: "",
     timestamp: "",
   });
 
-  const [showCaseList, setShowCaseList] = useState(true);
+  useEffect(() => {
+    setCurrentPage(1); // reset page เมื่อ filter เปลี่ยน
+  }, [filters]);
 
-  const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
-
-  // Toggle filter input visibility
-  const toggleFilter = useCallback((field) => {
+  const toggleFilter = (field) => {
     setFilterOpen((prev) => ({
       ...prev,
       [field]: !prev[field],
     }));
-  }, []);
+  };
 
-  // Sort handler
-  const handleSort = useCallback(
-    (key) => {
-      setSortConfig((prev) => {
-        if (prev.key === key) {
-          return {
-            key,
-            direction: prev.direction === "asc" ? "desc" : "asc",
-          };
-        }
-        return { key, direction: "asc" };
-      });
-    },
-    []
-  );
+  const handleSort = (key) => {
+    setSortConfig((prev) =>
+      prev.key === key
+        ? { key, direction: prev.direction === "asc" ? "desc" : "asc" }
+        : { key, direction: "asc" }
+    );
+  };
 
-  const sortIndicator = useCallback(
-    (key) => {
-      if (sortConfig.key !== key) return "";
-      return sortConfig.direction === "asc" ? " ▲" : " ▼";
-    },
-    [sortConfig]
-  );
-
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error fetching data</p>;
+  const sortIndicator = (key) => {
+    if (sortConfig.key !== key) return "";
+    return sortConfig.direction === "asc" ? " ▲" : " ▼";
+  };
 
   const cases = data?.caselist || [];
 
-  // Filter cases
   const filteredCases = useMemo(() => {
     return cases.filter((item) => {
-      const caseIdArr = Array.isArray(item.case_id) ? item.case_id : [];
+      const tokenMatch = filters.token
+        ? item.token.toLowerCase().includes(filters.token.toLowerCase())
+        : true;
 
       const caseIdMatch = filters.caseId
-        ? caseIdArr.some((id) =>
+        ? (Array.isArray(item.case_id) ? item.case_id : []).some((id) =>
             id.toLowerCase().includes(filters.caseId.toLowerCase())
           )
         : true;
@@ -98,73 +87,58 @@ const CaseList = () => {
         ? item.timestamp && new Date(item.timestamp) >= new Date(filters.timestamp)
         : true;
 
-      return caseIdMatch && statusMatch && resultMatch && timestampMatch;
+      return tokenMatch && caseIdMatch && statusMatch && resultMatch && timestampMatch;
     });
   }, [cases, filters]);
 
-  // Sort filtered cases
   const sortedCases = useMemo(() => {
-    if (!sortConfig.key) return filteredCases;
+    const sorted = [...filteredCases];
+    if (!sortConfig.key) return sorted;
 
-    return [...filteredCases].sort((a, b) => {
-      let aVal, bVal;
+    sorted.sort((a, b) => {
+      let aVal = a[sortConfig.key] || "";
+      let bVal = b[sortConfig.key] || "";
 
       if (sortConfig.key === "case_id") {
         aVal = Array.isArray(a.case_id) ? a.case_id[0] : "";
         bVal = Array.isArray(b.case_id) ? b.case_id[0] : "";
-      } else {
-        aVal = a[sortConfig.key] || "";
-        bVal = b[sortConfig.key] || "";
       }
 
       if (sortConfig.key === "timestamp") {
         aVal = new Date(aVal);
         bVal = new Date(bVal);
-      } else {
-        // Normalize string comparison case-insensitive
-        aVal = String(aVal).toLowerCase();
-        bVal = String(bVal).toLowerCase();
       }
 
       if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
+
+    return sorted;
   }, [filteredCases, sortConfig]);
 
   const totalPages = Math.ceil(sortedCases.length / ITEMS_PER_PAGE);
-
-  // Paginate
-  const displayedCases = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return sortedCases.slice(start, start + ITEMS_PER_PAGE);
-  }, [sortedCases, currentPage]);
-
-  // Delete handler with confirmation
-  const handleDelete = useCallback(
-    async (token, case_id) => {
-      const caseIdDisplay = Array.isArray(case_id)
-        ? case_id.join(", ")
-        : case_id || "-";
-
-      if (!window.confirm(`Are you sure you want to delete the case: ${caseIdDisplay} ?`)) {
-        return;
-      }
-
-      try {
-        await deleteCase({ variables: { token, case_id } });
-        toast.success("Deleted successfully");
-      } catch (err) {
-        toast.error("Delete failed: " + err.message);
-      }
-    },
-    [deleteCase]
+  const displayedCases = sortedCases.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters]);
+  const handleDelete = async (token, case_id) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the case: ${case_id.join(", ")} ?`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await deleteCase({ variables: { token, case_id } });
+      toast.success("Deleted successfully");
+    } catch (err) {
+      toast.error("Delete failed: " + err.message);
+    }
+  };
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error fetching data</p>;
 
   return (
     <div>
@@ -183,66 +157,24 @@ const CaseList = () => {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: "#f2f2f2" }}>
-                <th
-                  style={styles.th}
-                  onClick={() => handleSort("case_id")}
-                  title="Sort by Case ID"
-                >
-                  Case ID{sortIndicator("case_id")}{" "}
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFilter("caseId");
-                    }}
-                  >
-                    <FilterIcon active={filters.caseId !== ""} />
-                  </span>
-                </th>
-                <th
-                  style={styles.th}
-                  onClick={() => handleSort("case_status")}
-                  title="Sort by Status"
-                >
-                  Status{sortIndicator("case_status")}{" "}
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFilter("status");
-                    }}
-                  >
-                    <FilterIcon active={filters.status !== ""} />
-                  </span>
-                </th>
-                <th
-                  style={styles.th}
-                  onClick={() => handleSort("case_result")}
-                  title="Sort by Result"
-                >
-                  Result{sortIndicator("case_result")}{" "}
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFilter("result");
-                    }}
-                  >
-                    <FilterIcon active={filters.result !== ""} />
-                  </span>
-                </th>
-                <th
-                  style={styles.th}
-                  onClick={() => handleSort("timestamp")}
-                  title="Sort by Timestamp"
-                >
-                  Timestamp{sortIndicator("timestamp")}{" "}
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFilter("timestamp");
-                    }}
-                  >
-                    <FilterIcon active={filters.timestamp !== ""} />
-                  </span>
-                </th>
+                {["case_id", "case_status", "case_result", "timestamp"].map((key) => (
+                  <th key={key} style={styles.th} onClick={() => handleSort(key)}>
+                    {key.replace("_", " ").toUpperCase()}
+                    {sortIndicator(key)}{" "}
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFilter(key === "case_id" ? "caseId" : key.split("_")[1]);
+                      }}
+                    >
+                      <FilterIcon
+                        active={
+                          filters[key === "case_id" ? "caseId" : key.split("_")[1]] !== ""
+                        }
+                      />
+                    </span>
+                  </th>
+                ))}
                 <th style={styles.th}>Actions</th>
               </tr>
 
@@ -300,7 +232,10 @@ const CaseList = () => {
                       type="date"
                       value={filters.timestamp}
                       onChange={(e) =>
-                        setFilters((prev) => ({ ...prev, timestamp: e.target.value }))
+                        setFilters((prev) => ({
+                          ...prev,
+                          timestamp: e.target.value,
+                        }))
                       }
                       style={styles.filterInput}
                       autoFocus
@@ -310,7 +245,6 @@ const CaseList = () => {
                 <th></th>
               </tr>
             </thead>
-
             <tbody>
               {displayedCases.length === 0 ? (
                 <tr>
@@ -319,31 +253,30 @@ const CaseList = () => {
                   </td>
                 </tr>
               ) : (
-                displayedCases.map((item, idx) => {
-                  // ใช้ token + case_id.join(",") เป็น key กันซ้ำ
-                  const key = item.token + "-" + (Array.isArray(item.case_id) ? item.case_id.join(",") : "");
-
-                  return (
-                    <tr
-                      key={key}
-                      style={idx % 2 === 0 ? styles.evenRow : styles.oddRow}
-                    >
-                      <td style={styles.td}>
-                        {Array.isArray(item.case_id) ? item.case_id.join(", ") : "-"}
-                      </td>
-                      <td style={styles.td}>{item.case_status || "-"}</td>
-                      <td style={styles.td}>{item.case_result || "-"}</td>
-                      <td style={styles.td}>
-                        {item.timestamp ? new Date(item.timestamp).toLocaleString() : "-"}
-                      </td>
-                      <td style={styles.td}>
-                        <button onClick={() => handleDelete(item.token, item.case_id)}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+                displayedCases.map((item, index) => (
+                  <tr
+                    key={item.token}
+                    style={index % 2 === 0 ? styles.evenRow : styles.oddRow}
+                  >
+                    <td style={styles.td}>
+                      {Array.isArray(item.case_id)
+                        ? item.case_id.join(", ")
+                        : "-"}
+                    </td>
+                    <td style={styles.td}>{item.case_status || "-"}</td>
+                    <td style={styles.td}>{item.case_result || "-"}</td>
+                    <td style={styles.td}>
+                      {item.timestamp
+                        ? new Date(item.timestamp).toLocaleString()
+                        : "-"}
+                    </td>
+                    <td style={styles.td}>
+                      <button onClick={() => handleDelete(item.token, item.case_id)}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
