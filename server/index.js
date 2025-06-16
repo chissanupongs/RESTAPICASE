@@ -1,5 +1,9 @@
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
+import fs from 'fs';
+import path from 'path';
+
+const HISTORY_FILE_PATH = `C:\\Users\\chissanupong.s\\Desktop\\gong\\RESTAPICASE\\data\\history.json`;
 
 const typeDefs = `#graphql
 
@@ -28,6 +32,30 @@ const VALID_RESULTS = ["WaitingAnalysis", "TruePositives", "FalsePositives"];
 
 let caselist = [];
 
+function appendHistory(action, cases) {
+  try {
+    const now = new Date().toISOString();
+    let historyData = [];
+
+    if (fs.existsSync(HISTORY_FILE_PATH)) {
+      const fileContent = fs.readFileSync(HISTORY_FILE_PATH, 'utf-8');
+      historyData = fileContent ? JSON.parse(fileContent) : [];
+    }
+
+    cases.forEach(c => {
+      historyData.push({
+        timestamp: now,
+        action,
+        case: c,
+      });
+    });
+
+    fs.writeFileSync(HISTORY_FILE_PATH, JSON.stringify(historyData, null, 2), 'utf-8');
+  } catch (err) {
+    console.error("Error writing history file:", err);
+  }
+}
+
 const resolvers = {
   Query: {
     caselist: () => caselist,
@@ -48,7 +76,7 @@ const resolvers = {
 
         if (index !== -1) {
           caselist[index].case_status = case_status;
-          caselist[index].timestamp = new Date().toISOString(); // เพิ่ม timestamp
+          caselist[index].timestamp = new Date().toISOString();
           if (!caselist[index].case_id.includes(singleCaseId)) {
             caselist[index].case_id.push(singleCaseId);
           }
@@ -59,12 +87,14 @@ const resolvers = {
             case_id: [singleCaseId],
             case_status,
             case_result: null,
-            timestamp: new Date().toISOString(), // เพิ่ม timestamp
+            timestamp: new Date().toISOString(),
           };
           caselist.push(newCase);
           updatedCases.push(newCase);
         }
       });
+
+      appendHistory("updateCaseStatus", updatedCases);
 
       return updatedCases;
     },
@@ -83,7 +113,7 @@ const resolvers = {
 
         if (index !== -1) {
           caselist[index].case_result = case_result;
-          caselist[index].timestamp = new Date().toISOString(); // เพิ่ม timestamp
+          caselist[index].timestamp = new Date().toISOString();
           if (!caselist[index].case_id.includes(singleCaseId)) {
             caselist[index].case_id.push(singleCaseId);
           }
@@ -94,12 +124,14 @@ const resolvers = {
             case_id: [singleCaseId],
             case_status: null,
             case_result,
-            timestamp: new Date().toISOString(), // เพิ่ม timestamp
+            timestamp: new Date().toISOString(),
           };
           caselist.push(newCase);
           updatedCases.push(newCase);
         }
       });
+
+      appendHistory("updateCaseResult", updatedCases);
 
       return updatedCases;
     },
@@ -117,12 +149,16 @@ const resolvers = {
             case_id: [singleCaseId],
             case_status: null,
             case_result: null,
-            timestamp: new Date().toISOString(), // เพิ่ม timestamp
+            timestamp: new Date().toISOString(),
           };
           caselist.push(newCase);
           addedCases.push(newCase);
         }
       });
+
+      if (addedCases.length > 0) {
+        appendHistory("addCase", addedCases);
+      }
 
       return addedCases;
     },
@@ -144,6 +180,8 @@ const resolvers = {
       if (deletedCases.length === 0) {
         throw new Error("No matching cases found to delete.");
       }
+
+      appendHistory("deleteCase", deletedCases);
 
       return deletedCases;
     },
