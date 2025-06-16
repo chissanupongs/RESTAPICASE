@@ -83,8 +83,30 @@ const CaseList = () => {
         ? (item.case_result || "").toLowerCase() === filters.result.toLowerCase()
         : true;
 
+      // แปลง timestamp พ.ศ. เป็น ค.ศ. แล้วแปลงเป็น Date object
+      const parseThaiDate = (str) => {
+        if (!str) return null;
+        // แยกวันที่และเวลาออก
+        const [datePart, timePart] = str.split(" ");
+        if (!datePart) return null;
+        const [d, m, y] = datePart.split("/").map(Number);
+        if (!d || !m || !y) return null;
+        // แปลงปี พ.ศ. เป็น ค.ศ.
+        const year = y > 2500 ? y - 543 : y;
+        // รวมวันที่แบบ ISO string
+        const time = timePart || "00:00:00";
+        // รูปแบบ ISO 8601
+        const isoStr = `${year.toString().padStart(4, "0")}-${m
+          .toString()
+          .padStart(2, "0")}-${d.toString().padStart(2, "0")}T${time}`;
+        return new Date(isoStr);
+      };
+
+      const itemDate = parseThaiDate(item.timestamp);
+      const filterDate = filters.timestamp ? new Date(filters.timestamp) : null;
+
       const timestampMatch = filters.timestamp
-        ? item.timestamp && new Date(item.timestamp) >= new Date(filters.timestamp)
+        ? itemDate && filterDate && itemDate >= filterDate
         : true;
 
       return tokenMatch && caseIdMatch && statusMatch && resultMatch && timestampMatch;
@@ -164,12 +186,24 @@ const CaseList = () => {
                     <span
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleFilter(key === "case_id" ? "caseId" : key.split("_")[1]);
+                        toggleFilter(
+                          key === "case_id"
+                            ? "caseId"
+                            : key === "timestamp"
+                            ? "timestamp"
+                            : key.split("_")[1]
+                        );
                       }}
                     >
                       <FilterIcon
                         active={
-                          filters[key === "case_id" ? "caseId" : key.split("_")[1]] !== ""
+                          filters[
+                            key === "case_id"
+                              ? "caseId"
+                              : key === "timestamp"
+                              ? "timestamp"
+                              : key.split("_")[1]
+                          ] !== ""
                         }
                       />
                     </span>
@@ -255,7 +289,7 @@ const CaseList = () => {
               ) : (
                 displayedCases.map((item, index) => (
                   <tr
-                    key={item.token}
+                    key={`${item.token}-${index}`} // เพิ่ม index เพื่อความ unique ของ key
                     style={index % 2 === 0 ? styles.evenRow : styles.oddRow}
                   >
                     <td style={styles.td}>
