@@ -1,1 +1,170 @@
-[]
+[
+  {
+    "timestamp": "2025-06-17T08:43:11.796Z",
+    "action": "updateCaseStatus",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case123"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:43:11.796Z",
+      "locked": false
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:43:11.796Z",
+    "action": "updateCaseStatus",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case456"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:43:11.796Z",
+      "locked": false
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:43:20.022Z",
+    "action": "lockCase",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case123"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:43:20.022Z",
+      "locked": true
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:43:20.022Z",
+    "action": "lockCase",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case456"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:43:20.022Z",
+      "locked": true
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:43:20.911Z",
+    "action": "lockCase",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case123"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:43:20.911Z",
+      "locked": true
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:43:20.911Z",
+    "action": "lockCase",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case456"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:43:20.911Z",
+      "locked": true
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:44:01.037Z",
+    "action": "unlockCase",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case123"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:44:01.037Z",
+      "locked": false
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:44:01.037Z",
+    "action": "unlockCase",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case456"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:44:01.037Z",
+      "locked": false
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:44:02.323Z",
+    "action": "unlockCase",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case123"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:44:02.323Z",
+      "locked": false
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:44:02.323Z",
+    "action": "unlockCase",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case456"
+      ],
+      "case_status": "Opened",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:44:02.323Z",
+      "locked": false
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:44:10.615Z",
+    "action": "updateCaseStatus",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case123"
+      ],
+      "case_status": "Closed",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:44:10.615Z",
+      "locked": false
+    }
+  },
+  {
+    "timestamp": "2025-06-17T08:44:10.615Z",
+    "action": "updateCaseStatus",
+    "case": {
+      "token": "testtoken",
+      "case_id": [
+        "case456"
+      ],
+      "case_status": "Closed",
+      "case_result": null,
+      "timestamp": "2025-06-17T08:44:10.615Z",
+      "locked": false
+    }
+  }
+]
