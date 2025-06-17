@@ -198,6 +198,11 @@ const resolvers = {
         );
 
         if (index !== -1) {
+          if (caselist[index].locked) {
+            // ป้องกันการลบเคสที่ถูกล็อก
+            throw new Error(`Cannot delete locked case: ${singleCaseId}`);
+          }
+
           const [deleted] = caselist.splice(index, 1);
           deletedCases.push(deleted);
         }

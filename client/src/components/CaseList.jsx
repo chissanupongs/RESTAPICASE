@@ -201,6 +201,16 @@ const CaseList = () => {
   );
 
   const handleDelete = async (token, case_id) => {
+    // หา item ที่จะลบจาก caselist (สมมติ caselist อยู่ใน scope)
+    const item = displayedCases.find(
+      c => c.token === token && JSON.stringify(c.case_id) === JSON.stringify(case_id)
+    );
+
+    if (item?.locked) {
+      toast.error("❌ This case is locked and cannot be deleted.");
+      return;
+    }
+
     const confirmDelete = window.confirm(
       `Are you sure you want to delete the case: ${case_id.join(", ")} ?`
     );
@@ -411,11 +421,23 @@ const CaseList = () => {
                       </button>
                       &nbsp;
                       <button
-                        onClick={() => handleDelete(item.token, item.case_id)}
-                        style={{ backgroundColor: 'red', color: 'white' }}
+                        onClick={() => {
+                          if (item.locked) {
+                            toast.error("❌ This case is locked and cannot be deleted.");
+                          } else {
+                            handleDelete(item.token, item.case_id);
+                          }
+                        }}
+                        style={{
+                          backgroundColor: 'red',
+                          color: 'white',
+                          opacity: item.locked ? 0.5 : 1,
+                          cursor: item.locked ? 'not-allowed' : 'pointer',
+                        }}
                       >
                         Delete
                       </button>
+
                     </td>
                   </tr>
                 ))
