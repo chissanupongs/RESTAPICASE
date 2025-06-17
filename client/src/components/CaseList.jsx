@@ -4,6 +4,8 @@ import { GET_CASELIST } from "../graphql/queries";
 import { DELETE_CASE } from "../graphql/mutations";
 import { toast } from "react-toastify";
 import Pagination from "./Pagination";
+import { LOCK_CASE, UNLOCK_CASE } from "../graphql/mutations";
+
 
 const ITEMS_PER_PAGE = 5;
 
@@ -16,10 +18,19 @@ const CaseList = () => {
   const [deleteCase] = useMutation(DELETE_CASE, {
     refetchQueries: [{ query: GET_CASELIST }],
   });
+  const [lockCase] = useMutation(LOCK_CASE, {
+  refetchQueries: [{ query: GET_CASELIST }],
+  });
+  const [unlockCase] = useMutation(UNLOCK_CASE, {
+    refetchQueries: [{ query: GET_CASELIST }],
+  });
 
   const [currentPage, setCurrentPage] = useState(1);
   const [showCaseList, setShowCaseList] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
+
+  // เก็บสถานะล็อกของแต่ละ case token
+  const [lockStatus, setLockStatus] = useState({});
 
   const [filterOpen, setFilterOpen] = useState({
     token: false,
@@ -27,6 +38,7 @@ const CaseList = () => {
     status: false,
     result: false,
     timestamp: false,
+    lock: false,
   });
 
   const [filters, setFilters] = useState({
@@ -35,10 +47,11 @@ const CaseList = () => {
     status: "",
     result: "",
     timestamp: "",
+    lock: "",
   });
 
   useEffect(() => {
-    setCurrentPage(1); // reset page เมื่อ filter เปลี่ยน
+    setCurrentPage(1);
   }, [filters]);
 
   const toggleFilter = (field) => {
@@ -60,6 +73,26 @@ const CaseList = () => {
     if (sortConfig.key !== key) return "";
     return sortConfig.direction === "asc" ? " ▲" : " ▼";
   };
+
+  // ฟังก์ชันเปลี่ยนสถานะล็อก (ใช้ในปุ่ม Action พร้อม confirm)
+  const handleToggleLock = async (token, case_id, locked) => {
+    const action = locked ? "unlock" : "lock";
+    const confirmToggle = window.confirm(`Are you sure you want to ${action} this case?`);
+
+    if (!confirmToggle) return;
+
+    try {
+      if (locked) {
+        await unlockCase({ variables: { token, case_id } });
+      } else {
+        await lockCase({ variables: { token, case_id } });
+      }
+      toast.success(`${locked ? "Unlocked" : "Locked"} successfully`);
+    } catch (err) {
+      toast.error(`${locked ? "Unlock" : "Lock"} failed: ` + err.message);
+    }
+  };
+
 
   const cases = data?.caselist || [];
 
@@ -83,19 +116,15 @@ const CaseList = () => {
         ? (item.case_result || "").toLowerCase() === filters.result.toLowerCase()
         : true;
 
-      // แปลง timestamp พ.ศ. เป็น ค.ศ. แล้วแปลงเป็น Date object
+      // แปลง timestamp (พ.ศ.) เป็น Date เพื่อเปรียบเทียบ
       const parseThaiDate = (str) => {
         if (!str) return null;
-        // แยกวันที่และเวลาออก
         const [datePart, timePart] = str.split(" ");
         if (!datePart) return null;
         const [d, m, y] = datePart.split("/").map(Number);
         if (!d || !m || !y) return null;
-        // แปลงปี พ.ศ. เป็น ค.ศ.
         const year = y > 2500 ? y - 543 : y;
-        // รวมวันที่แบบ ISO string
         const time = timePart || "00:00:00";
-        // รูปแบบ ISO 8601
         const isoStr = `${year.toString().padStart(4, "0")}-${m
           .toString()
           .padStart(2, "0")}-${d.toString().padStart(2, "0")}T${time}`;
@@ -109,9 +138,28 @@ const CaseList = () => {
         ? itemDate && filterDate && itemDate >= filterDate
         : true;
 
-      return tokenMatch && caseIdMatch && statusMatch && resultMatch && timestampMatch;
+      // Filter by lock status
+      const lockFilter = filters.lock.toLowerCase();
+      const isLocked = lockStatus[item.token] || false;
+      const lockMatch =
+        lockFilter === ""
+          ? true
+          : lockFilter === "locked"
+          ? isLocked === true
+          : lockFilter === "unlocked"
+          ? isLocked === false
+          : true;
+
+      return (
+        tokenMatch &&
+        caseIdMatch &&
+        statusMatch &&
+        resultMatch &&
+        timestampMatch &&
+        lockMatch
+      );
     });
-  }, [cases, filters]);
+  }, [cases, filters, lockStatus]);
 
   const sortedCases = useMemo(() => {
     const sorted = [...filteredCases];
@@ -131,13 +179,20 @@ const CaseList = () => {
         bVal = new Date(bVal);
       }
 
+      if (sortConfig.key === "lock") {
+        const aLock = lockStatus[a.token] || false;
+        const bLock = lockStatus[b.token] || false;
+        aVal = aLock ? 1 : 0;
+        bVal = bLock ? 1 : 0;
+      }
+
       if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
 
     return sorted;
-  }, [filteredCases, sortConfig]);
+  }, [filteredCases, sortConfig, lockStatus]);
 
   const totalPages = Math.ceil(sortedCases.length / ITEMS_PER_PAGE);
   const displayedCases = sortedCases.slice(
@@ -179,9 +234,21 @@ const CaseList = () => {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: "#f2f2f2" }}>
-                {["case_id", "case_status", "case_result", "timestamp"].map((key) => (
-                  <th key={key} style={styles.th} onClick={() => handleSort(key)}>
-                    {key.replace("_", " ").toUpperCase()}
+                {[
+                  "case_id",
+                  "case_status",
+                  "case_result",
+                  "lock",
+                  "timestamp",
+                ].map((key) => (
+                  <th
+                    key={key}
+                    style={styles.th}
+                    onClick={() => handleSort(key)}
+                  >
+                    {key === "lock"
+                      ? "LOCK STATUS"
+                      : key.replace("_", " ").toUpperCase()}
                     {sortIndicator(key)}{" "}
                     <span
                       onClick={(e) => {
@@ -189,6 +256,8 @@ const CaseList = () => {
                         toggleFilter(
                           key === "case_id"
                             ? "caseId"
+                            : key === "lock"
+                            ? "lock"
                             : key === "timestamp"
                             ? "timestamp"
                             : key.split("_")[1]
@@ -200,6 +269,8 @@ const CaseList = () => {
                           filters[
                             key === "case_id"
                               ? "caseId"
+                              : key === "lock"
+                              ? "lock"
                               : key === "timestamp"
                               ? "timestamp"
                               : key.split("_")[1]
@@ -209,7 +280,7 @@ const CaseList = () => {
                     </span>
                   </th>
                 ))}
-                <th style={styles.th}>Actions</th>
+                <th style={{ ...styles.th, textAlign: "center" }}>Actions</th>
               </tr>
 
               <tr>
@@ -259,6 +330,22 @@ const CaseList = () => {
                       <option value="FalsePositives">FalsePositives</option>
                     </select>
                   )}
+                </th>  
+                <th style={styles.filterCell}>
+                  {filterOpen.lock && (
+                    <select
+                      value={filters.lock}
+                      onChange={(e) =>
+                        setFilters((prev) => ({ ...prev, lock: e.target.value }))
+                      }
+                      style={styles.filterInput}
+                      autoFocus
+                    >
+                      <option value="">All</option>
+                      <option value="locked">Locked</option>
+                      <option value="unlocked">Unlocked</option>
+                    </select>
+                  )}
                 </th>
                 <th style={styles.filterCell}>
                   {filterOpen.timestamp && (
@@ -282,14 +369,14 @@ const CaseList = () => {
             <tbody>
               {displayedCases.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: "center", padding: 10 }}>
+                  <td colSpan="6" style={{ textAlign: "center", padding: 10 }}>
                     No matching data found
                   </td>
                 </tr>
               ) : (
                 displayedCases.map((item, index) => (
                   <tr
-                    key={`${item.token}-${index}`} // เพิ่ม index เพื่อความ unique ของ key
+                    key={`${item.token}-${index}`}
                     style={index % 2 === 0 ? styles.evenRow : styles.oddRow}
                   >
                     <td style={styles.td}>
@@ -300,12 +387,33 @@ const CaseList = () => {
                     <td style={styles.td}>{item.case_status || "-"}</td>
                     <td style={styles.td}>{item.case_result || "-"}</td>
                     <td style={styles.td}>
+                      {item.locked ? "Locked" : "Unlocked"}
+                    </td>
+                    <td style={styles.td}>
                       {item.timestamp
                         ? new Date(item.timestamp).toLocaleString()
                         : "-"}
                     </td>
                     <td style={styles.td}>
-                      <button onClick={() => handleDelete(item.token, item.case_id)}>
+                      <button
+                        onClick={() => handleToggleLock(item.token, item.case_id, item.locked)}
+                        style={{
+                          backgroundColor: item.locked ? "lime" : "red",
+                          color: "white",
+                          border: "none",
+                          padding: "5px 10px",
+                          marginRight: "5px",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {item.locked ? "🔓Unlock" : "🔒Lock"}
+                      </button>
+                      &nbsp;
+                      <button
+                        onClick={() => handleDelete(item.token, item.case_id)}
+                        style={{ backgroundColor: 'red', color: 'white' }}
+                      >
                         Delete
                       </button>
                     </td>

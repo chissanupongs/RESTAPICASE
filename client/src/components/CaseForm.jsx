@@ -65,6 +65,9 @@ export default function CaseForm() {
     setMatchedCases(matched);
   }, [token, caseIds, data, loading, error]);
 
+  // เช็คว่ามีเคสไหนถูกล็อกบ้าง
+  const hasLockedCase = matchedCases.some(c => c.locked === true);
+
   // ฟังก์ชันยืนยันอัปเดตเคสจริงๆ
   const onUpdate = async () => {
     if (!token.trim() || !caseIds.trim()) {
@@ -73,6 +76,10 @@ export default function CaseForm() {
     }
     if (!caseStatus && !caseResult) {
       toast.error('🔴 Please select status or result to update');
+      return;
+    }
+    if (hasLockedCase) {
+      toast.error('🔴 Cannot update because one or more cases are locked');
       return;
     }
 
@@ -143,6 +150,7 @@ export default function CaseForm() {
         <select
           value={caseStatus}
           onChange={e => setCaseStatus(e.target.value)}
+          disabled={hasLockedCase}
         >
           <option value="">-- Select Status --</option>
           <option value="Opened">Opened</option>
@@ -155,6 +163,7 @@ export default function CaseForm() {
         <select
           value={caseResult}
           onChange={e => setCaseResult(e.target.value)}
+          disabled={hasLockedCase}
         >
           <option value="">-- Select Result --</option>
           <option value="WaitingAnalysis">WaitingAnalysis</option>
@@ -164,8 +173,16 @@ export default function CaseForm() {
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-        <button onClick={onUpdate}>🛠️ Update Case</button>
+        <button onClick={onUpdate} disabled={hasLockedCase}>
+          🛠️ Update Case
+        </button>
       </div>
+
+      {hasLockedCase && (
+        <p style={{ color: 'red', marginTop: 10 }}>
+          ⚠️ Cannot edit case because one or more selected cases are locked.
+        </p>
+      )}
 
       {token.trim() && caseIds.trim() && (
         <div style={{ marginTop: 20, border: '1px solid #ccc', padding: 15 }}>
@@ -183,6 +200,7 @@ export default function CaseForm() {
                   <th>Case IDs</th>
                   <th>Status</th>
                   <th>Result</th>
+                  <th>Locked</th>
                 </tr>
               </thead>
               <tbody>
@@ -193,6 +211,9 @@ export default function CaseForm() {
                     <td>{c.case_id.join(', ')}</td>
                     <td>{c.case_status || '-'}</td>
                     <td>{c.case_result || '-'}</td>
+                    <td style={{ color: c.locked ? 'red' : 'green', fontWeight: 'bold' }}>
+                      {c.locked ? 'Locked' : 'Unlocked'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -13,6 +13,7 @@ const typeDefs = `#graphql
     case_status: String
     case_result: String
     timestamp: String
+    locked: Boolean
   }
 
   type HistoryEntry {
@@ -31,6 +32,8 @@ const typeDefs = `#graphql
     updateCaseResult(token: String!, case_id: [String!]!, case_result: String!): [Case]
     addCase(token: String!, case_id: [String!]!): [Case]
     deleteCase(token: String!, case_id: [String!]!): [Case]
+    lockCase(token: String!, case_id: [String!]!): [Case]
+    unlockCase(token: String!, case_id: [String!]!): [Case]
   }
 `;
 
@@ -108,6 +111,7 @@ const resolvers = {
             case_status,
             case_result: null,
             timestamp: new Date().toISOString(),
+            locked: false,
           };
           caselist.push(newCase);
           updatedCases.push(newCase);
@@ -145,6 +149,7 @@ const resolvers = {
             case_status: null,
             case_result,
             timestamp: new Date().toISOString(),
+            locked: false,
           };
           caselist.push(newCase);
           updatedCases.push(newCase);
@@ -170,6 +175,7 @@ const resolvers = {
             case_status: null,
             case_result: null,
             timestamp: new Date().toISOString(),
+            locked: false,
           };
           caselist.push(newCase);
           addedCases.push(newCase);
@@ -205,6 +211,68 @@ const resolvers = {
 
       return deletedCases;
     },
+
+    lockCase: (_, { token, case_id }) => {
+    let updatedCases = [];
+
+    case_id.forEach(singleCaseId => {
+      const index = caselist.findIndex(
+        item => item.token === token && item.case_id.includes(singleCaseId)
+      );
+
+      if (index !== -1) {
+        caselist[index].locked = true;
+        caselist[index].timestamp = new Date().toISOString();
+        updatedCases.push(caselist[index]);
+      } else {
+        const newCase = {
+          token,
+          case_id: [singleCaseId],
+          case_status: null,
+          case_result: null,
+          timestamp: new Date().toISOString(),
+          locked: true,
+        };
+        caselist.push(newCase);
+        updatedCases.push(newCase);
+      }
+    });
+
+    appendHistory("lockCase", updatedCases);
+
+    return updatedCases;
+  },
+
+  unlockCase: (_, { token, case_id }) => {
+    let updatedCases = [];
+
+    case_id.forEach(singleCaseId => {
+      const index = caselist.findIndex(
+        item => item.token === token && item.case_id.includes(singleCaseId)
+      );
+
+      if (index !== -1) {
+        caselist[index].locked = false;
+        caselist[index].timestamp = new Date().toISOString();
+        updatedCases.push(caselist[index]);
+      } else {
+        const newCase = {
+          token,
+          case_id: [singleCaseId],
+          case_status: null,
+          case_result: null,
+          timestamp: new Date().toISOString(),
+          locked: false,
+        };
+        caselist.push(newCase);
+        updatedCases.push(newCase);
+      }
+    });
+
+    appendHistory("unlockCase", updatedCases);
+
+    return updatedCases;
+  },
   },
 };
 

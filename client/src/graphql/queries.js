@@ -7,6 +7,7 @@ export const GET_CASELIST = gql`
       case_id
       case_status
       case_result
+      locked
       timestamp
     }
   }
@@ -22,6 +23,7 @@ export const GET_HISTORY = gql`
         case_id
         case_status
         case_result
+        locked
         timestamp
       }
     }

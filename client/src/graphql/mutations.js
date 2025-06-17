@@ -7,6 +7,8 @@ export const UPDATE_CASE_STATUS = gql`
       case_id
       case_status
       case_result
+      locked
+      timestamp
     }
   }
 `;
@@ -18,6 +20,8 @@ export const UPDATE_CASE_RESULT = gql`
       case_id
       case_status
       case_result
+      locked
+      timestamp
     }
   }
 `;
@@ -29,6 +33,8 @@ export const ADD_CASE = gql`
       case_id
       case_status
       case_result
+      locked
+      timestamp
     }
   }
 `;
@@ -40,6 +46,35 @@ export const DELETE_CASE = gql`
       case_id
       case_status
       case_result
+      locked
+      timestamp
     }
   }
 `;
+
+export const LOCK_CASE = gql`
+  mutation LockCase($token: String!, $case_id: [String!]!) {
+    lockCase(token: $token, case_id: $case_id) {
+      token
+      case_id
+      case_status
+      case_result
+      locked
+      timestamp
+    }
+  }
+`;
+
+export const UNLOCK_CASE = gql`
+  mutation UnlockCase($token: String!, $case_id: [String!]!) {
+    unlockCase(token: $token, case_id: $case_id) {
+      token
+      case_id
+      case_status
+      case_result
+      locked
+      timestamp
+    }
+  }
+`;
+
