@@ -208,6 +208,14 @@ const resolvers = {
   },
 };
 
+// Clear history file on server start
+try {
+  fs.writeFileSync(HISTORY_FILE_PATH, '[]', 'utf-8');
+  console.log("✅ Cleared history.json on startup");
+} catch (err) {
+  console.error("❌ Failed to clear history.json:", err);
+}
+
 const server = new ApolloServer({
   typeDefs,
   resolvers,

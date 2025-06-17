@@ -1,5 +1,17 @@
 import { gql } from '@apollo/client';
 
+export const GET_CASELIST = gql`
+  query {
+    caselist {
+      token
+      case_id
+      case_status
+      case_result
+      timestamp
+    }
+  }
+`;
+
 export const GET_HISTORY = gql`
   query GetHistory {
     history {
