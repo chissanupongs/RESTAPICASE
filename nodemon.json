@@ -1,0 +1,4 @@
+{
+  "watch": ["./server"],
+  "ignore": ["C:/Users/chissanupong.s/Desktop/gong/RESTAPICASE/data"]
+}

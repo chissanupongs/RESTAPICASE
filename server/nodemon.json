@@ -1,4 +1,0 @@
-{
-  "watch": ["server"],
-  "ignore": ["data/*", "node_modules/*"]
-}
